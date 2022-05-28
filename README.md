@@ -21,6 +21,10 @@ Command: `$ sfn build --definition-file my-definition.yaml`
 
 If the `my-definition.yaml` file doesn't exist, you will be prompted to create it. The tool will then create a skeleton of an ASL definition and guide you through creating the initial state.
 
+## Demo
+
+![demo](./images/demo.gif)
+
 ## Known issues
 * Inserting Choice state not yet implemented.
 * At the moment you can only insert leaf tasks. You can't insert tasks in between other tasks.
