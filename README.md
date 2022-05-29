@@ -26,6 +26,5 @@ If the `my-definition.yaml` file doesn't exist, you will be prompted to create i
 ![demo](./images/demo.gif)
 
 ## Known issues
-* Inserting Choice state not yet implemented.
-* At the moment you can only insert leaf tasks. You can't insert tasks in between other tasks.
+* Boolean logic in Choice states is not yet implemented
 * By design, the tool will not guide you through adding ARNs and other parameters to SDK integrations. This is best done in a code editor.
