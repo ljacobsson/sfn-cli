@@ -13,7 +13,7 @@ async function run(cmd) {
     }
     console.log("Please create your first state");
     const firstState = await stateBuilder.build();
-
+    firstState.asl.End = true
     const aslSkeleton = {
       StartAt: firstState.stateName,
       States: {
@@ -42,7 +42,7 @@ async function run(cmd) {
   }
 }
 
-async function stateActions(result, asl, state, definitionFile) {
+async function stateActions(result, asl, state, definitionFile) {  
   const VIEW_ASL_SNIPPET = "View ASL snippet";
   const ADD_NEXT_STATE = "Add next state";
   const INSERT_STATE = `Insert state between here and '${result[0].Next}'`;
@@ -73,8 +73,6 @@ async function stateActions(result, asl, state, definitionFile) {
     result[0].Next = newState.stateName;
     delete result[0].End;
     parent[newState.stateName] = newState.asl;
-    if (!parent[newState.stateName].Default)
-      parent[newState.stateName].End = true;
     fs.writeFileSync(definitionFile, parser.stringify("asl", asl));
   }
 
@@ -86,7 +84,7 @@ async function stateActions(result, asl, state, definitionFile) {
     const oldNext = result[0].Next;
     result[0].Next = newState.stateName;
     parent[newState.stateName] = newState.asl;
-    if (!parent[newState.stateName].Default)
+    if (parent[newState.stateName] && !parent[newState.stateName].Default)
       parent[newState.stateName].Next = oldNext;
     delete parent[newState.stateName].End
     fs.writeFileSync(definitionFile, parser.stringify("asl", asl));
@@ -97,8 +95,6 @@ async function stateActions(result, asl, state, definitionFile) {
     if (!newState) {
       return;
     }
-    if (!parent[newState.stateName].Default)
-      newState.asl.End = true;
     result[0].Branches.push({
       StartAt: newState.stateName,
       States: {
@@ -109,21 +105,19 @@ async function stateActions(result, asl, state, definitionFile) {
   }
 }
 
-function generateTree(obj, state, tree, path) {
+function generateTree(obj, state, tree, path, longPath) {
   if (!obj[state]) return;
   const newPath = expandPath(path, [`'${state}'`]);
   const item = {
     name: `${state} [${obj[state].Type}]`,
     value: newPath
   }
-
-  if (knownStates[newPath] > 10) {
-
+  if ((longPath || "").split(state).length > 10) {
     item.name += " (recursive)";
     return item;
   }
   knownStates[newPath] = (knownStates[newPath] || 0) + 1;
-
+  longPath += newPath;
   if (obj[state].Resource) {
     if (obj[state].Resource.startsWith("arn:")) {
       const split = obj[state].Resource.split(":");
@@ -139,29 +133,29 @@ function generateTree(obj, state, tree, path) {
     for (const choice of obj[state].Choices) {
       if (choice.Next) {
         item.children = item.children || [];
-        item.children.push(generateTree(obj, choice.Next, tree, path));
+        item.children.push(generateTree(obj, choice.Next, tree, path, longPath));
       }
     }
     if (obj[state].Default) {
       item.children = item.children || [];
-      item.children.push(generateTree(obj, obj[state].Default, tree, path));
+      item.children.push(generateTree(obj, obj[state].Default, tree, path, longPath));
     }
   }
   if (obj[state].Iterator) {
     item.children = item.children || [];
-    item.children.push(generateTree(obj[state].Iterator.States, obj[state].Iterator.StartAt, tree, expandPath(path, [`'${state}'`, "'Iterator'", "'States'"])));
+    item.children.push(generateTree(obj[state].Iterator.States, obj[state].Iterator.StartAt, tree, expandPath(path, [`'${state}'`, "'Iterator'", "'States'"]), longPath));
   }
 
   if (obj[state].Branches) {
     for (const branch of obj[state].Branches) {
       item.children = item.children || [];
-      item.children.push(generateTree(branch.States, branch.StartAt, tree, expandPath(path, [`'${state}'`, "'Branches'", "*", "'States'"])));
+      item.children.push(generateTree(branch.States, branch.StartAt, tree, expandPath(path, [`'${state}'`, "'Branches'", "*", "'States'"]), longPath));
     }
   }
 
   if (obj[state].Next) {
     item.children = item.children || [];
-    item.children.push(generateTree(obj, obj[state].Next, tree, path));
+    item.children.push(generateTree(obj, obj[state].Next, tree, path, longPath));
   }
   return item;
 }

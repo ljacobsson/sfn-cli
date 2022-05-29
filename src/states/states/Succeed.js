@@ -1,7 +1,6 @@
 async function build() {
   const snippet = {
-    Type: "Succeed",
-    End: true
+    Type: "Succeed"
   };
   return JSON.parse(JSON.stringify(snippet));
 }
