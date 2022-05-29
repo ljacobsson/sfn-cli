@@ -60,56 +60,57 @@ async function stateActions(result, asl, state, definitionFile) {
   const choice = await inputUtil.autocomplete("Select action",
     options
   );
+
   const parent = jp.parent(asl.States, state);
   if (choice === VIEW_ASL_SNIPPET) {
     console.log(parser.renderPretty("asl", result[0]));
   }
-  let newState;
   if (choice === ADD_NEXT_STATE) {
-    newState = await stateBuilder.build(parent);
+    const newState = await stateBuilder.build(parent);
     if (!newState) {
       return;
     }
     result[0].Next = newState.stateName;
     delete result[0].End;
     parent[newState.stateName] = newState.asl;
-    parent[newState.stateName].End = true;
+    if (!parent[newState.stateName].Default)
+      parent[newState.stateName].End = true;
+    fs.writeFileSync(definitionFile, parser.stringify("asl", asl));
   }
 
   if (choice === INSERT_STATE) {
-    newState = await stateBuilder.build(parent);
+    const newState = await stateBuilder.build(parent);
     if (!newState) {
       return;
     }
     const oldNext = result[0].Next;
     result[0].Next = newState.stateName;
     parent[newState.stateName] = newState.asl;
-    parent[newState.stateName].Next = oldNext;
+    if (!parent[newState.stateName].Default)
+      parent[newState.stateName].Next = oldNext;
     delete parent[newState.stateName].End
+    fs.writeFileSync(definitionFile, parser.stringify("asl", asl));
   }
 
   if (choice === ADD_PARALLEL_STATE) {
-    newState = await stateBuilder.build(parent);
+    const newState = await stateBuilder.build(parent);
     if (!newState) {
       return;
     }
-    newState.asl.End = true;
+    if (!parent[newState.stateName].Default)
+      newState.asl.End = true;
     result[0].Branches.push({
       StartAt: newState.stateName,
       States: {
         [newState.stateName]: newState.asl
       }
     })
+    fs.writeFileSync(definitionFile, parser.stringify("asl", asl));
   }
-  if (newState && parent[newState.stateName].Default) {
-    delete parent[newState.stateName].Next;
-  };
-
-  fs.writeFileSync(definitionFile, parser.stringify("asl", asl));
-
 }
 
 function generateTree(obj, state, tree, path) {
+  if (!obj[state]) return;
   const newPath = expandPath(path, [`'${state}'`]);
   const item = {
     name: `${state} [${obj[state].Type}]`,

@@ -94,7 +94,7 @@ async function build(parentState) {
         [comparison]: true
       };
     }
-    const nextState = await inputUtil.autocomplete("Select or create next state", [...Object.keys(parentState), "*Add later*"].map(p => { return { name: p, value: p } }));
+    const nextState = await inputUtil.autocomplete("Select or create next state", Object.keys(parentState).map(p => { return { name: p, value: p } }));
     choice.Next = nextState;
 
     snippet.Choices.push(choice);
@@ -103,7 +103,7 @@ async function build(parentState) {
       break;
     }
   }
-  const defaultState = await inputUtil.autocomplete("Select default state", [...Object.keys(parentState), "*Add later*"].map(p => { return { name: p, value: p } }));
+  const defaultState = await inputUtil.autocomplete("Select default state", Object.keys(parentState).map(p => { return { name: p, value: p } }));
   snippet.Default = defaultState;
 
   return snippet;
