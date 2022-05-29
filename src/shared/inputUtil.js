@@ -1,5 +1,6 @@
 const inquirer = require("inquirer");
 const TreePrompt = require('inquirer-tree-prompt');
+inquirer.registerPrompt('datepicker', require('inquirer-datepicker'));
 
 inquirer.registerPrompt('tree', TreePrompt);
 inquirer.registerPrompt(
@@ -42,6 +43,16 @@ async function tree(message, items) {
         message: message,
         tree: items
       })).state;
+}
+async function datetime(message) {
+  return (await inquirer
+    .prompt(
+      {
+        type: 'datepicker',
+        name: 'date',
+        message: message,
+        format: ['Y', '-', 'MM', '-', 'DD', 'T', 'hh', ':', 'mm', ':', 'ss', 'Z']
+      })).date.toISOString();
 }
 
 async function files(message) {
@@ -99,5 +110,6 @@ module.exports = {
   text,
   prompt,
   files,
-  tree
+  tree,
+  datetime
 };

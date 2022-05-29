@@ -3,7 +3,7 @@ const fs = require("fs");
 const inputUtil = require("../../shared/inputUtil");
 const jp = require('jsonpath');
 const stateBuilder = require("../../states/stateBuilder");
-const knownStates = [];
+const knownStates = {};
 async function run(cmd) {
   const definitionFile = cmd.definitionFile;
   if (!fs.existsSync(definitionFile)) {
@@ -43,34 +43,53 @@ async function run(cmd) {
 }
 
 async function stateActions(result, asl, state, definitionFile) {
-  const options = ["View ASL snippet"];
+  const VIEW_ASL_SNIPPET = "View ASL snippet";
+  const ADD_NEXT_STATE = "Add next state";
+  const INSERT_STATE = `Insert state between here and '${result[0].Next}'`;
+  const ADD_PARALLEL_STATE = "Add parallel state";
+  const options = [VIEW_ASL_SNIPPET];
   if (result[0].End) {
-    options.push("Add next state");
+    options.push(ADD_NEXT_STATE);
+  }
+  if (result[0].Next) {
+    options.push(INSERT_STATE);
   }
   if (result[0].Type === "Parallel") {
-    options.push("Add parallel state");
+    options.push(ADD_PARALLEL_STATE);
   }
   const choice = await inputUtil.autocomplete("Select action",
     options
   );
-
-  if (choice === "View ASL snippet") {
+  const parent = jp.parent(asl.States, state);
+  if (choice === VIEW_ASL_SNIPPET) {
     console.log(parser.renderPretty("asl", result[0]));
   }
-  if (choice === "Add next state") {
-    const newState = await stateBuilder.build();
+  let newState;
+  if (choice === ADD_NEXT_STATE) {
+    newState = await stateBuilder.build(parent);
     if (!newState) {
       return;
     }
     result[0].Next = newState.stateName;
     delete result[0].End;
-    const parent = jp.parent(asl.States, state);
     parent[newState.stateName] = newState.asl;
     parent[newState.stateName].End = true;
-    fs.writeFileSync(definitionFile, parser.stringify("asl", asl));
   }
-  if (choice === "Add parallel state") {
-    const newState = await stateBuilder.build();
+
+  if (choice === INSERT_STATE) {
+    newState = await stateBuilder.build(parent);
+    if (!newState) {
+      return;
+    }
+    const oldNext = result[0].Next;
+    result[0].Next = newState.stateName;
+    parent[newState.stateName] = newState.asl;
+    parent[newState.stateName].Next = oldNext;
+    delete parent[newState.stateName].End
+  }
+
+  if (choice === ADD_PARALLEL_STATE) {
+    newState = await stateBuilder.build(parent);
     if (!newState) {
       return;
     }
@@ -81,8 +100,13 @@ async function stateActions(result, asl, state, definitionFile) {
         [newState.stateName]: newState.asl
       }
     })
-    fs.writeFileSync(definitionFile, parser.stringify("asl", asl));
   }
+  if (newState && parent[newState.stateName].Default) {
+    delete parent[newState.stateName].Next;
+  };
+
+  fs.writeFileSync(definitionFile, parser.stringify("asl", asl));
+
 }
 
 function generateTree(obj, state, tree, path) {
@@ -91,11 +115,13 @@ function generateTree(obj, state, tree, path) {
     name: `${state} [${obj[state].Type}]`,
     value: newPath
   }
-  if (knownStates.includes(newPath)) {
+
+  if (knownStates[newPath] > 10) {
+
     item.name += " (recursive)";
     return item;
   }
-  knownStates[newPath] = true;
+  knownStates[newPath] = (knownStates[newPath] || 0) + 1;
 
   if (obj[state].Resource) {
     if (obj[state].Resource.startsWith("arn:")) {

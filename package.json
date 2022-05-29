@@ -10,12 +10,13 @@
     "commander": "^9.2.0",
     "inquirer": "^7.0.4",
     "inquirer-autocomplete-prompt": "^1.3.0",
+    "inquirer-datepicker": "^2.0.2",
     "inquirer-tree-prompt": "^1.1.2",
     "jsonpath": "^1.1.1",
     "yaml-cfn": "^0.3.1",
     "yamlify-object": "^0.6.0",
     "yamlify-object-colors": "^1.0.3"
-  },  
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/mhlabs/sfn-cli.git"
