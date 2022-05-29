@@ -62,22 +62,22 @@ async function build(parentState) {
   while (true) {
     let choice;
 
-    const variablePath = await inputUtil.text("Please enter a variable path", path);
+    const variablePath = await inputUtil.text("Enter a variable path", path);
     const comparison = await inputUtil.autocomplete("Select comparison operator", [...comparisonOperators, ...valueTypeOperators].sort().map(p => { return { name: p, value: p } }));
     if (comparisonOperators.includes(comparison)) {
       let value;
       if (comparison === "BooleanEquals") {
-        value = await inputUtil.list("Please select a boolean value", ["true", "false"]);
+        value = await inputUtil.list("Select a boolean value", ["true", "false"]);
         value = value === "true";
       } else if (comparison.includes("Timestamp") && !comparison.includes("Path")) {
-        value = await inputUtil.datetime("Please select a timestamp", "value");
+        value = await inputUtil.datetime("Select a timestamp", "value");
       }
       else if (comparison.includes("Numeric") && !comparison.includes("Path")) {
-        value = await inputUtil.text("Please enter a numeric value", "value");
+        value = await inputUtil.text("Enter a numeric value", "value");
         value = parseFloat(value);
       }
       else {
-        value = await inputUtil.text("Please enter a value", "value");
+        value = await inputUtil.text("Enter a value", "value");
       }
       if (comparison.endsWith("Path")) {
         if (!value.startsWith("$.")) {

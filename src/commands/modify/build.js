@@ -11,7 +11,7 @@ async function run(cmd) {
     if (!create) {
       return;
     }
-    console.log("Please create your first state");
+    console.log("Create your first state");
     const firstState = await stateBuilder.build();
     firstState.asl.End = true
     const aslSkeleton = {
