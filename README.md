@@ -2,6 +2,9 @@
 
 Command line interface for inspecting Amazon StepFunctions executions and building state machine definitions.
 
+## Installation
+`npm i -g @mhlabs/sfn-cli`
+
 ## Usage
 ```
 Usage: sfn [options] [command]
