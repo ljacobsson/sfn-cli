@@ -56,6 +56,7 @@ async function stateActions(result, asl, state, definitionFile) {
   }
   if (result[0].Type === "Parallel") {
     options.push(ADD_PARALLEL_STATE);
+    options.push(ADD_NEXT_STATE);
   }
   const choice = await inputUtil.autocomplete("Select action",
     options

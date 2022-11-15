@@ -1,18 +1,19 @@
 const inputUtil = require('../../shared/inputUtil');
 const serviceLookup = require('../../shared/serviceLookup');
-
+const stateBuilder = require('../stateBuilder');
 async function build() {
+  const state = await stateBuilder.build()
 
-  const stateName = await inputUtil.text("Enter a name for the start state", "MyNewState");
-  const response = await serviceLookup.getServiceAction();
-  response.data.asl.End = true;
+  //  const stateName = await inputUtil.text("Enter a name for the start state", "MyNewState");
+  //  const response = await serviceLookup.getServiceAction();End
+  state.asl.End = true;
   const snippet = {
     Type: "Map",
     ItemsPath: "$.MyItemsArray",
     Iterator: {
-      StartAt: stateName,
+      StartAt: state.stateName,
       States: {
-        [stateName]: JSON.parse(JSON.stringify(response.data.asl).replace(":PARTITION:", ":aws:"))
+        [state.stateName]: JSON.parse(JSON.stringify(state.asl).replace(":PARTITION:", ":aws:"))
       }
     },
     End: true
