@@ -1,6 +1,6 @@
 {
   "name": "@mhlabs/sfn-cli",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Command line interface for inspecting Amazon StepFunctions executions and building state machine definitions",
   "main": "index.js",
   "author": "mhlabs",

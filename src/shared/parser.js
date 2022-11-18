@@ -10,9 +10,13 @@ function parse(identifier, str) {
     format[identifier] = "json";
     return parsed;
   } catch {
-    const parsed = yamlCfn.yamlParse(str);
-    format[identifier] = "yaml";
-    return parsed;
+    try {
+      const parsed = yamlCfn.yamlParse(str);
+      format[identifier] = "yaml";
+      return parsed;
+    } catch {
+      return null;
+    }
   }
 }
 function stringify(identifier, obj) {
