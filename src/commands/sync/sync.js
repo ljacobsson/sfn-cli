@@ -60,7 +60,8 @@ async function run(cmd) {
     }
     aslDocument = JSON.parse(aslString);
     try {
-      const result = await stepFunctions.updateStateMachine({ stateMachineArn, definition: JSON.stringify(aslDocument) }).promise();
+      const stateMachine = await stepFunctions.describeStateMachine({ stateMachineArn }).promise();
+      const result = await stepFunctions.updateStateMachine({ stateMachineArn, definition: JSON.stringify(aslDocument), roleArn: stateMachine.roleArn }).promise();
       console.log("State machine updated successfully");
     } catch (e) {
       console.log(e.message);
@@ -81,7 +82,7 @@ function getSubstitutionPaths(doc) {
         if (key.includes(" ")) key = `["${key}"]`;
         else key = `.${key}`;
         getPath(`${currPath}${key}`, value);
-        if (typeof value === "string" && value.startsWith("${")) {
+        if (typeof value === "string" && value.includes("${")) {
           paths.push(`$.${currPath}${key}`);
         }
       });
