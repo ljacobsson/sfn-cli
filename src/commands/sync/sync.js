@@ -1,17 +1,41 @@
 const StepFunctions = require("aws-sdk/clients/stepfunctions");
 const CloudFormation = require("aws-sdk/clients/cloudformation");
+const AWS = require("aws-sdk");
 const inputUtil = require('../../shared/inputUtil');
-const stepFunctions = new StepFunctions();
-const cloudFormation = new CloudFormation();
 const parser = require("../../shared/parser");
 const jp = require('jsonpath');
 const fs = require("fs");
 const readline = require('readline');
 const authHelper = require('../../shared/auth-helper');
-
+const ini = require('ini');
 async function run(cmd) {
-  authHelper.initAuth(cmd)
+  if (fs.existsSync("samconfig.toml")) {
+    const config = ini.parse(fs.readFileSync("samconfig.toml", "utf8"));
+    const params = config?.default?.deploy?.parameters;
+    if (params.stack_name) {
+      console.log("Using stack name from config:", params.stack_name);
+      cmd.stackName = params.stack_name;
+    }
+    if (params.profile) {
+      console.log("Using AWS profile from config:", params.profile);
+      cmd.profile = params.profile;
+    }
+    if (params.region) {
+      console.log("Using AWS region from config:", params.region);
+      cmd.region = params.region;
+      AWS.config.region = params.region;
+    }
+  }
+  if (!cmd.stackName) {
+    console.error("Missing required option: --stack-name");
+    process.exit(1);
+  }
 
+  authHelper.initAuth(cmd)
+  
+  const stepFunctions = new StepFunctions();
+  const cloudFormation = new CloudFormation();
+  
   const templateFile = cmd.templateFile;
   if (!fs.existsSync(templateFile)) {
     console.log(`File ${templateFile} does not exist`);
@@ -28,6 +52,7 @@ async function run(cmd) {
   } else {
     stateMachine = await inputUtil.list("Select a state machine", stateMachineNames);
   }
+  
   const stack = await cloudFormation.listStackResources({ StackName: cmd.stackName }).promise();
   const stateMachineArn = stack.StackResourceSummaries.find(resource => resource.LogicalResourceId === stateMachine).PhysicalResourceId;
   const stateMachineResponse = await stepFunctions.describeStateMachine({ stateMachineArn }).promise();

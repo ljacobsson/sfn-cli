@@ -1,0 +1,39 @@
+{
+  "eventbridge": {
+    "EventBridgeEvent": {
+      "Type": "EventBridgeRule",
+      "Properties": {
+        "EventBusName": "default",
+        "InputPath": "$.detail",
+        "Pattern": {
+          "source": ["aws.s3"],
+          "detail-type": ["Object Created"],
+          "detail": {
+            "bucket": {
+              "name": ["<your bucket>"]
+            }
+          }
+        }
+      }
+    }
+  },
+  "api": {
+    "ApiEvent": {
+      "Type": "Api",
+      "Properties": {
+        "Path": "/path",
+        "Method": "get",
+        "RequestParameters": ["method.request.header.Authorization"]
+      }
+    }
+  },
+  "schedule": {
+    "ScheduleEvent": {
+      "Type": "ScheduleV2",
+      "Properties": {
+        "ScheduleExpression": "rate(1 minute)"
+      }
+    }
+  },
+  "none": null
+}

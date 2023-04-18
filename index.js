@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 process.env.AWS_SDK_LOAD_CONFIG = 1;
+process.env.AWS_SDK_JS_SUPPRESS_MAINTENANCE_MODE_MESSAGE = 1;
 const program = require("commander");
 const package = require("./package.json");
 const fs = require("fs");
