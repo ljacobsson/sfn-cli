@@ -32,13 +32,18 @@ async function run(cmd) {
 
   const asl = fs.readFileSync(aslFile, "utf8");
 
-  const matches = asl.match(/arn:aws:states(.+?)\n/g).map(match => match.replace(/\n/g, ''));
+  const matches = asl.match(/Resource.+arn:aws:states(.+?)\n/g).map(match => match.replace(/\n/g, ''));
   if (!matches) {
     console.log("No SDK actions found in ASL");
     return;
   }
   // split by : and get last 2 elements
-  let actions = matches.map(match => match.split(':').slice(-2));
+
+  let actions = matches.map(match => {
+    //remove .sync:\d from end of string
+    match = match.replace(/\.sync:\d/g, '');
+    return match.split(':').slice(-2)
+  });
   template.Resources[stateMachine].Properties.Policies =
     template.Resources[stateMachine].Properties.Policies || [];
   const policy = {
