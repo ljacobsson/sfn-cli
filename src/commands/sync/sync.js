@@ -1,17 +1,19 @@
-const StepFunctions = require("aws-sdk/clients/stepfunctions");
-const CloudFormation = require("aws-sdk/clients/cloudformation");
-const AWS = require("aws-sdk");
+const { SFNClient, DescribeStateMachineCommand, UpdateStateMachineCommand } = require("@aws-sdk/client-sfn");
+const { CloudFormationClient, ListStackResourcesCommand } = require("@aws-sdk/client-cloudformation");
+const { fromSSO } = require("@aws-sdk/credential-provider-sso");
+
 const inputUtil = require('../../shared/inputUtil');
 const parser = require("../../shared/parser");
 const jp = require('jsonpath');
 const fs = require("fs");
 const readline = require('readline');
-const authHelper = require('../../shared/auth-helper');
 const ini = require('ini');
 async function run(cmd) {
+  let region;
   if (fs.existsSync("samconfig.toml")) {
     const config = ini.parse(fs.readFileSync("samconfig.toml", "utf8"));
     const params = config?.default?.deploy?.parameters;
+
     if (params.stack_name) {
       console.log("Using stack name from config:", params.stack_name);
       cmd.stackName = params.stack_name;
@@ -23,7 +25,7 @@ async function run(cmd) {
     if (params.region) {
       console.log("Using AWS region from config:", params.region);
       cmd.region = params.region;
-      AWS.config.region = params.region;
+      region = params.region;
     }
   }
   if (!cmd.stackName) {
@@ -31,11 +33,10 @@ async function run(cmd) {
     process.exit(1);
   }
 
-  authHelper.initAuth(cmd)
-  
-  const stepFunctions = new StepFunctions();
-  const cloudFormation = new CloudFormation();
-  
+  const credentials = await fromSSO({ profile: cmd.profile || "default" });
+  const stepFunctions = new SFNClient({ credentials, region });
+  const cloudFormation = new CloudFormationClient({ credentials, region });
+
   const templateFile = cmd.templateFile;
   if (!fs.existsSync(templateFile)) {
     console.log(`File ${templateFile} does not exist`);
@@ -52,10 +53,10 @@ async function run(cmd) {
   } else {
     stateMachine = await inputUtil.list("Select a state machine", stateMachineNames);
   }
-  
-  const stack = await cloudFormation.listStackResources({ StackName: cmd.stackName }).promise();
+
+  const stack = await cloudFormation.send(new ListStackResourcesCommand({ StackName: cmd.stackName }));
   const stateMachineArn = stack.StackResourceSummaries.find(resource => resource.LogicalResourceId === stateMachine).PhysicalResourceId;
-  const stateMachineResponse = await stepFunctions.describeStateMachine({ stateMachineArn }).promise();
+  const stateMachineResponse = await stepFunctions.send(new DescribeStateMachineCommand({ stateMachineArn }));
   const definition = JSON.parse(stateMachineResponse.definition);
   const aslFilePath = template.Resources[stateMachine].Properties.DefinitionUri;
   let aslDocument = parser.parse("yaml", fs.readFileSync(aslFilePath).toString('utf8'), null, 2) || aslDocument;
@@ -85,8 +86,8 @@ async function run(cmd) {
     }
     aslDocument = JSON.parse(aslString);
     try {
-      const stateMachine = await stepFunctions.describeStateMachine({ stateMachineArn }).promise();
-      const result = await stepFunctions.updateStateMachine({ stateMachineArn, definition: JSON.stringify(aslDocument), roleArn: stateMachine.roleArn }).promise();
+      const stateMachine = await stepFunctions.send(new DescribeStateMachineCommand({ stateMachineArn }));
+      const result = await stepFunctions.send(new UpdateStateMachineCommand({ stateMachineArn, definition: JSON.stringify(aslDocument), roleArn: stateMachine.roleArn }));
       console.log("State machine updated successfully");
     } catch (e) {
       console.log(e.message);

@@ -1,16 +1,14 @@
-const StepFunctions = require("aws-sdk/clients/stepfunctions");
-const CloudFormation = require("aws-sdk/clients/cloudformation");
-const AWS = require("aws-sdk");
+const { CloudFormationClient, DescribeStackResourcesCommand } = require("@aws-sdk/client-cloudformation");
+const { fromSSO } = require("@aws-sdk/credential-provider-sso");
+
 const inputUtil = require('../../shared/inputUtil');
 const parser = require("../../shared/parser");
-const jp = require('jsonpath');
 const fs = require("fs");
-const readline = require('readline');
-const authHelper = require('../../shared/auth-helper');
 const ini = require('ini');
 const link2aws = require('link2aws');
 const open = import('open');
 async function run(cmd) {
+  let region;
   if (fs.existsSync("samconfig.toml")) {
     const config = ini.parse(fs.readFileSync("samconfig.toml", "utf8"));
     const params = config?.default?.deploy?.parameters;
@@ -25,18 +23,15 @@ async function run(cmd) {
     if (params.region) {
       console.log("Using AWS region from config:", params.region);
       cmd.region = params.region;
-      AWS.config.region = params.region;
+      region = params.region;
     }
   }
   if (!cmd.stackName) {
     console.error("Missing required option: --stack-name");
     process.exit(1);
   }
-
-  authHelper.initAuth(cmd)
-
-  const stepFunctions = new StepFunctions();
-  const cloudFormation = new CloudFormation();
+  const credentials = await fromSSO({ profile: cmd.profile || "default" });
+  const cloudFormation = new CloudFormationClient({ credentials, region });
 
   const templateFile = cmd.templateFile;
   if (!fs.existsSync(templateFile)) {
@@ -58,17 +53,17 @@ async function run(cmd) {
     const choices = stateMachines.map((sm, i) => sm);
     stateMachine = await inputUtil.autocomplete("Select a state machine", choices);
   }
-  
+
   const physicalId = await getPhysicalId(cloudFormation, cmd.stackName, stateMachine);
 
   (await (open)).default(new link2aws.ARN(physicalId).consoleLink);
 }
 
 async function getPhysicalId(cloudFormation, stackName, logicalId) {
-  const response = await cloudFormation.describeStackResources({
+  const response = await cloudFormation.send(new DescribeStackResourcesCommand({
     StackName: stackName,
     LogicalResourceId: logicalId
-  }).promise();
+  }));
   if (response.StackResources.length === 0) {
     throw new Error(`No stack resource found for ${logicalId}`);
   }
