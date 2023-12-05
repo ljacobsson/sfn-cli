@@ -1,6 +1,6 @@
 {
   "name": "@mhlabs/sfn-cli",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Command line interface for inspecting Amazon StepFunctions executions and building state machine definitions",
   "main": "index.js",
   "author": "mhlabs",
@@ -9,7 +9,6 @@
     "@aws-sdk/client-cloudformation": "^3.395.0",
     "@aws-sdk/client-sfn": "^3.395.0",
     "@mhlabs/aws-sdk-sso": "^0.0.16",
-    "aws-sdk": "^2.1268.0",
     "axios": "^0.27.2",
     "commander": "^9.2.0",
     "dagre": "^0.8.5",
